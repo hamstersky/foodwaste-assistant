@@ -21,3 +21,21 @@ class Thread:
     def __create_new_thread(self):
         thread = self.client.beta.threads.create()
         self.id = thread.id
+
+    def __extract_messages_contents(self, messages: list[str]) -> list[str]:
+        return [content.text.value for msg in messages for content in msg.content]
+
+    def get_messages(self, before: Optional[str] = None):
+        return self.client.beta.threads.messages.list(thread_id=self.id, before=before)
+
+    def get_assistant_messages(self, before: Optional[str] = None):
+        messages = self.get_messages(before)
+
+        assistant_messages = list(
+            filter(
+                lambda msg: msg.role == "assistant",
+                messages.data,
+            )
+        )
+
+        return self.__extract_messages_contents(assistant_messages)
