@@ -39,3 +39,9 @@ class Thread:
         )
 
         return self.__extract_messages_contents(assistant_messages)
+
+    def add_message(self, content: str):
+        message = self.client.beta.threads.messages.create(
+            thread_id=self.id, role="user", content=content
+        )
+        return message.id
