@@ -22,16 +22,16 @@ class UI:
         self.assistant = st.session_state.assistant
         self.thread = st.session_state.thread
 
-    def __render_message(self, role: str, content: str):
+    def __render_message(self, role: str, content: str, stream: bool = True):
         with st.chat_message(role):
             container = st.empty()
-            if role == "assistant":
+            if role == "assistant" and stream:
                 container.write_stream(self.__simulate_stream(content))
             container.markdown(content)
 
     def __render_messages(self):
         for message in self.messages:
-            self.__render_message(message["role"], message["content"])
+            self.__render_message(message["role"], message["content"], stream=False)
 
     def __simulate_stream(self, text: str):
         for word in text.split():
@@ -69,27 +69,47 @@ class UI:
             self.messages.append({"role": "user", "content": prompt})
 
             message_id = self.thread.add_message(prompt)
+            self.__create_run()
+            self.__render_responses(message_id)
 
-            run = None
-            with st.spinner("Generating response..."):
-                run = Run(self.openai_client, self.assistant.id, self.thread.id)
-                run.wait_for_run_completion()
+    def __create_run(self):
+        run = None
+        with st.spinner("Generating response..."):
+            run = Run(
+                self.openai_client,
+                self.foodwaste_client,
+                self.assistant.id,
+                self.thread.id,
+            )
+            run.wait_for_run_completion()
 
-            for response in self.thread.get_assistant_messages(before=message_id):
-                self.__render_message("assistant", response)
-                self.messages.append({"role": "assistant", "content": response})
+        if not run.is_run_successful():
+            st.error(
+                "Something went wrong with processing your request. Please try again.",
+                icon="🤖",
+            )
 
-            if not run.is_run_successful():
-                st.error(
-                    "Something went wrong with processing your request. Please try again.",
-                    icon="🤖",
-                )
+    def __render_responses(self, message_id):
+        for response in self.thread.get_assistant_messages(before=message_id):
+            self.__render_message("assistant", response)
+            self.messages.append({"role": "assistant", "content": response})
+
+    def __initialize_chat(self):
+        initial_instructions = f"Give me some recipe suggestions based on today's offers. The store_id is {st.session_state.store_id}"
+
+        message_id = self.thread.add_message(initial_instructions)
+        self.__create_run()
+        self.__render_responses(message_id)
+        st.session_state.session_started = True
+        self.__get_prompt()
 
     def render_ui(self):
         if "zip" not in st.session_state:
             self.__get_store_zipcode()
         elif "store_id" not in st.session_state:
             self.__render_store_picker()
+        elif "session_started" not in st.session_state:
+            self.__initialize_chat()
         else:
             self.__render_messages()
             self.__get_prompt()
