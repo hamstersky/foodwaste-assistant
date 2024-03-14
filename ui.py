@@ -59,7 +59,9 @@ class UI:
             lambda store_id: f"{stores_by_id[store_id].name}, {stores_by_id[store_id].address}"
         )
         selection = st.selectbox(
-            label="Select a specific store:", options=options, format_func=format_func
+            label="Now pick a store from the list:",
+            options=options,
+            format_func=format_func,
         )
         if selection:
             st.session_state.store_id = selection
@@ -104,8 +106,19 @@ class UI:
         st.session_state.session_started = True
         self.__get_prompt()
 
+    def __show_intro_text(self):
+        intro_text = """
+        This is an AI powered assitant that will help you to avoid food waste. Start by providing
+        a Danish zip code where you want to find a store. Then pick a specific store from the list
+        and get an initial recipe suggestion. From there you can chat with the assistant to
+        personalize the recipes and provide other instructions.
+        """
+        st.write(intro_text)
+
     def render_ui(self):
+        st.title("Food Waste Assistant")
         if "zip" not in st.session_state:
+            self.__show_intro_text()
             self.__get_store_zipcode()
         elif "store_id" not in st.session_state:
             self.__render_store_picker()
