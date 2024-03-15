@@ -18,6 +18,7 @@ class UI:
         self.state = st.session_state
 
     def initialize_state(self):
+        st.set_page_config(page_title="Food Waste Assistant")
         self.messages = st.session_state.messages
         self.assistant = st.session_state.assistant
         self.thread = st.session_state.thread
